@@ -9,7 +9,7 @@ interface SearchHeaderProps {
   placeholder?: string;
 }
 
-export function SearchHeader({ onSearch, placeholder = "법령 또는 판례를 검색하세요" }: SearchHeaderProps) {
+export function SearchHeader({ onSearch, placeholder = "법령 관련 키워드 검색" }: SearchHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTags, setSearchTags] = useState<string[]>([]);
 

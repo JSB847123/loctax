@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExternalLink, ArrowLeft, Book, Plus, Edit, Trash2, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Import law data
 import {
@@ -128,6 +128,50 @@ export const RegistrationTaxLaws = ({ onBack, searchQuery = "" }: RegistrationTa
   const [editingLaw, setEditingLaw] = useState<{sectionIndex: number, lawIndex: number} | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // 2년(24개월) = 2 * 365 * 24 * 60 * 60 * 1000 ms
+  const TWO_YEARS_IN_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+
+  // localStorage에서 데이터를 불러오는 함수 (2년 기한 체크)
+  const loadFromLocalStorage = (key: string, defaultValue: any) => {
+    try {
+      const stored = localStorage.getItem(key);
+      if (!stored) return defaultValue;
+      
+      const parsedData = JSON.parse(stored);
+      const now = Date.now();
+      
+      // 2년이 지났는지 확인
+      if (parsedData.timestamp && now - parsedData.timestamp > TWO_YEARS_IN_MS) {
+        localStorage.removeItem(key);
+        return defaultValue;
+      }
+      
+      return parsedData.data || parsedData; // 이전 버전 호환성
+    } catch (error) {
+      console.error(`Failed to load ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  };
+
+  // localStorage에 데이터를 저장하는 함수 (타임스탬프 포함)
+  const saveToLocalStorage = (lawsData: LawSection[]) => {
+    try {
+      const dataToStore = {
+        data: lawsData,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("registrationTaxLaws", JSON.stringify(dataToStore));
+    } catch (error) {
+      console.error("Failed to save registrationTaxLaws to localStorage:", error);
+    }
+  };
+
+  // 로컬 스토리지에서 데이터 로드
+  useEffect(() => {
+    const savedLaws = loadFromLocalStorage("registrationTaxLaws", registrationTaxLaws);
+    setLaws(savedLaws);
+  }, []);
+
   // 키워드 검색 필터링
   const filteredLaws = laws.map(section => ({
     ...section,
@@ -150,6 +194,7 @@ export const RegistrationTaxLaws = ({ onBack, searchQuery = "" }: RegistrationTa
       const newLaws = [...laws];
       newLaws[editingLaw.sectionIndex].laws[editingLaw.lawIndex].keywords = newKeywords;
       setLaws(newLaws);
+      saveToLocalStorage(newLaws);
       setEditingLaw(null);
     }
   };
@@ -160,7 +205,7 @@ export const RegistrationTaxLaws = ({ onBack, searchQuery = "" }: RegistrationTa
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur shadow-card">
+    <Card className="bg-card/80 backdrop-blur shadow-card border-border">
       <CardHeader>
         <div className="flex items-center gap-3">
           <Button
@@ -187,7 +232,7 @@ export const RegistrationTaxLaws = ({ onBack, searchQuery = "" }: RegistrationTa
           const originalSectionIndex = laws.findIndex(s => s.title === section.title);
           return (
             <div key={sectionIndex}>
-              <h3 className="font-semibold text-lg text-law-primary mb-3 border-b border-law-accent/30 pb-2">
+              <h3 className="font-semibold text-lg text-law-primary mb-3 border-b border-border pb-2">
                 {section.title}
               </h3>
               <div className="grid grid-cols-1 gap-3">
@@ -196,7 +241,7 @@ export const RegistrationTaxLaws = ({ onBack, searchQuery = "" }: RegistrationTa
                   return (
                     <div
                       key={lawIndex}
-                      className="p-3 border rounded-lg hover:bg-law-accent/10 hover:border-law-primary transition-colors duration-200 group"
+                      className="p-3 border border-border rounded-lg hover:bg-accent hover:border-law-primary transition-colors duration-200 group bg-card/30"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <button

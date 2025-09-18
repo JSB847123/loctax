@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SearchHeader } from "@/components/SearchHeader";
 import { QuickLinks } from "@/components/QuickLinks";
 import { SearchResults } from "@/components/SearchResults";
@@ -10,7 +10,6 @@ import { PropertyTaxLaws } from "@/components/PropertyTaxLaws";
 import { AcquisitionTaxLaws } from "@/components/AcquisitionTaxLaws";
 import { RegistrationTaxLaws } from "@/components/RegistrationTaxLaws";
 import { CustomLaws } from "@/components/CustomLaws";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,49 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 interface MonthlySchedules {
   [month: string]: string[];
 }
-
-interface StoredData {
-  data: any;
-  timestamp: number;
-}
-
-// 2년(24개월) = 2 * 365 * 24 * 60 * 60 * 1000 ms
-const TWO_YEARS_IN_MS = 2 * 365 * 24 * 60 * 60 * 1000;
-
-// localStorage에서 데이터를 불러오는 함수 (2년 기한 체크)
-const loadFromLocalStorage = (key: string, defaultValue: any) => {
-  try {
-    const stored = localStorage.getItem(key);
-    if (!stored) return defaultValue;
-    
-    const parsedData: StoredData = JSON.parse(stored);
-    const now = Date.now();
-    
-    // 2년이 지났는지 확인
-    if (now - parsedData.timestamp > TWO_YEARS_IN_MS) {
-      localStorage.removeItem(key);
-      return defaultValue;
-    }
-    
-    return parsedData.data;
-  } catch (error) {
-    console.error(`Failed to load ${key} from localStorage:`, error);
-    return defaultValue;
-  }
-};
-
-// localStorage에 데이터를 저장하는 함수 (타임스탬프 포함)
-const saveToLocalStorage = (key: string, data: any) => {
-  try {
-    const dataToStore: StoredData = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(key, JSON.stringify(dataToStore));
-  } catch (error) {
-    console.error(`Failed to save ${key} to localStorage:`, error);
-  }
-};
 
 // Mock data for demonstration
 const mockSearchResults = [
@@ -96,8 +52,8 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState(mockSearchResults);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [notes, setNotes] = useState<string[]>([]);
-  const [monthlySchedules, setMonthlySchedules] = useState<MonthlySchedules>({});
+  const [notes, setNotes] = useState(initialNotes);
+  const [monthlySchedules, setMonthlySchedules] = useState<MonthlySchedules>(initialMonthlySchedules);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [showPropertyTaxLaws, setShowPropertyTaxLaws] = useState(false);
   const [showAcquisitionTaxLaws, setShowAcquisitionTaxLaws] = useState(false);
@@ -106,35 +62,31 @@ const Index = () => {
   const [currentSearchQuery, setCurrentSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // localStorage에서 메모, 월별 일정, FAQ 불러오기
-  useEffect(() => {
-    const savedNotes = loadFromLocalStorage('userNotes', initialNotes);
-    const savedSchedules = loadFromLocalStorage('monthlySchedules', initialMonthlySchedules);
-    const savedFAQs = loadFromLocalStorage('userFAQs', []);
-    
-    setNotes(savedNotes);
-    setMonthlySchedules(savedSchedules);
-    setFaqs(savedFAQs);
-  }, []);
-
   const handleSearch = async (query: string) => {
     setCurrentSearchQuery(query);
     setIsSearching(true);
     
-    // 키워드가 있는 경우 모든 관련법에서 검색
+    // 키워드가 있는 경우 현재 열려있는 관련법 페이지에서 검색하거나 기본적으로 재산세 관련법에서 검색
     if (query.trim()) {
-      // 모든 관련법 페이지를 동시에 표시하여 통합 검색 수행
-      setShowPropertyTaxLaws(true);
-      setShowAcquisitionTaxLaws(true);
-      setShowRegistrationTaxLaws(true);
-      setShowCustomLaws(true);
+      if (!showPropertyTaxLaws && !showAcquisitionTaxLaws && !showRegistrationTaxLaws) {
+        // 아무 관련법 페이지도 열려있지 않으면 재산세 관련법을 기본으로 표시
+        setShowPropertyTaxLaws(true);
+        setShowAcquisitionTaxLaws(false);
+        setShowRegistrationTaxLaws(false);
+        toast({
+          title: "키워드 검색",
+          description: `"${query}" 키워드로 재산세 관련법에서 검색합니다.`,
+        });
+      } else {
+        // 이미 관련법 페이지가 열려있으면 해당 페이지에서 검색
+        const lawType = showPropertyTaxLaws ? "재산세" : showAcquisitionTaxLaws ? "취득세" : "등록면허세";
+        toast({
+          title: "키워드 검색",
+          description: `"${query}" 키워드로 ${lawType} 관련법에서 검색합니다.`,
+        });
+      }
       setHasSearched(false); // 관련법 페이지를 표시하기 위해 false로 설정
       setIsSearching(false);
-      
-      toast({
-        title: "통합 검색",
-        description: `"${query}" 키워드로 모든 관련법에서 검색합니다.`,
-      });
       return;
     }
     
@@ -143,7 +95,6 @@ const Index = () => {
     setShowPropertyTaxLaws(false);
     setShowAcquisitionTaxLaws(false);
     setShowRegistrationTaxLaws(false);
-    setShowCustomLaws(false);
     
     // Simulate API call for general search
     setTimeout(() => {
@@ -226,17 +177,14 @@ const Index = () => {
 
   const handleNotesChange = (newNotes: string[]) => {
     setNotes(newNotes);
-    saveToLocalStorage('userNotes', newNotes);
   };
 
   const handleMonthlySchedulesChange = (newSchedules: MonthlySchedules) => {
     setMonthlySchedules(newSchedules);
-    saveToLocalStorage('monthlySchedules', newSchedules);
   };
 
   const handleFAQsChange = (newFAQs: any[]) => {
     setFaqs(newFAQs);
-    saveToLocalStorage('userFAQs', newFAQs);
   };
 
   return (
@@ -250,14 +198,9 @@ const Index = () => {
         
         <div className="relative container mx-auto px-4 py-12 lg:py-20">
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-6">
-              <h1 className="text-4xl lg:text-6xl font-bold text-law-primary">
-                취득세, 재산세 법령 정보 모음
-              </h1>
-              <div className="flex-shrink-0">
-                <ThemeToggle />
-              </div>
-            </div>
+            <h1 className="text-4xl lg:text-6xl font-bold text-law-primary mb-8">
+              취득세, 재산세 법령 정보 모음
+            </h1>
           </div>
           
           <SearchHeader onSearch={handleSearch} />
@@ -274,47 +217,14 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-3 space-y-8">
-            {(showPropertyTaxLaws || showAcquisitionTaxLaws || showRegistrationTaxLaws || showCustomLaws) ? (
-              <>
-                {/* 검색 중이면 모든 관련법, 아니면 선택된 관련법만 표시 */}
-                {currentSearchQuery ? (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-2xl font-bold text-foreground">통합 검색 결과: "{currentSearchQuery}"</h2>
-                      <Button onClick={handleBackToQuickLinks} variant="outline">
-                        ← 돌아가기
-                      </Button>
-                    </div>
-                    {showPropertyTaxLaws && (
-                      <PropertyTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showAcquisitionTaxLaws && (
-                      <AcquisitionTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showRegistrationTaxLaws && (
-                      <RegistrationTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showCustomLaws && (
-                      <CustomLaws onBack={handleBackToQuickLinks} />
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {showPropertyTaxLaws && (
-                      <PropertyTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showAcquisitionTaxLaws && (
-                      <AcquisitionTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showRegistrationTaxLaws && (
-                      <RegistrationTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
-                    )}
-                    {showCustomLaws && (
-                      <CustomLaws onBack={handleBackToQuickLinks} />
-                    )}
-                  </>
-                )}
-              </>
+            {showPropertyTaxLaws ? (
+              <PropertyTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
+            ) : showAcquisitionTaxLaws ? (
+              <AcquisitionTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
+            ) : showRegistrationTaxLaws ? (
+              <RegistrationTaxLaws onBack={handleBackToQuickLinks} searchQuery={currentSearchQuery} />
+            ) : showCustomLaws ? (
+              <CustomLaws onBack={handleBackToQuickLinks} />
             ) : hasSearched ? (
               <SearchResults 
                 results={searchResults}

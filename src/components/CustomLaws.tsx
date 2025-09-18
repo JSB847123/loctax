@@ -27,22 +27,49 @@ export function CustomLaws({ onBack }: CustomLawsProps) {
     keywords: ""
   });
 
+  // 2년(24개월) = 2 * 365 * 24 * 60 * 60 * 1000 ms
+  const TWO_YEARS_IN_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+
+  // localStorage에서 데이터를 불러오는 함수 (2년 기한 체크)
+  const loadFromLocalStorage = (key: string, defaultValue: any) => {
+    try {
+      const stored = localStorage.getItem(key);
+      if (!stored) return defaultValue;
+      
+      const parsedData = JSON.parse(stored);
+      const now = Date.now();
+      
+      // 2년이 지났는지 확인
+      if (parsedData.timestamp && now - parsedData.timestamp > TWO_YEARS_IN_MS) {
+        localStorage.removeItem(key);
+        return defaultValue;
+      }
+      
+      return parsedData.data || parsedData; // 이전 버전 호환성
+    } catch (error) {
+      console.error(`Failed to load ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  };
+
+  // localStorage에 데이터를 저장하는 함수 (타임스탬프 포함)
+  const saveToLocalStorage = (laws: CustomLaw[]) => {
+    try {
+      const dataToStore = {
+        data: laws,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("customLaws", JSON.stringify(dataToStore));
+    } catch (error) {
+      console.error("Failed to save customLaws to localStorage:", error);
+    }
+  };
+
   // 로컬 스토리지에서 데이터 로드
   useEffect(() => {
-    const savedLaws = localStorage.getItem("customLaws");
-    if (savedLaws) {
-      try {
-        setCustomLaws(JSON.parse(savedLaws));
-      } catch (error) {
-        console.error("Failed to load custom laws:", error);
-      }
-    }
+    const savedLaws = loadFromLocalStorage("customLaws", []);
+    setCustomLaws(savedLaws);
   }, []);
-
-  // 로컬 스토리지에 데이터 저장
-  const saveToLocalStorage = (laws: CustomLaw[]) => {
-    localStorage.setItem("customLaws", JSON.stringify(laws));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

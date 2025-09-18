@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,15 @@ export function UserSidebar({
   const [editSchedule, setEditSchedule] = useState("");
   
   const { toast } = useToast();
+
+  // props가 변경될 때 상태 동기화
+  useEffect(() => {
+    setNotes(initialNotes);
+  }, [initialNotes]);
+
+  useEffect(() => {
+    setMonthlySchedules(initialMonthlySchedules);
+  }, [initialMonthlySchedules]);
 
   const updateNotes = (newNotes: string[]) => {
     setNotes(newNotes);
