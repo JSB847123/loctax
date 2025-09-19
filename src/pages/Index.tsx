@@ -86,11 +86,7 @@ const initialNotes = [
   "지방세법 개정 내용 검토"
 ];
 
-const initialMonthlySchedules: MonthlySchedules = {
-  "3월": ["재산세 신고 준비", "부동산 시세 조사"],
-  "6월": ["재산세 납부 기한"],
-  "9월": ["재산세 2차 납부"]
-};
+const initialMonthlySchedules: MonthlySchedules = {};
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState(mockSearchResults);

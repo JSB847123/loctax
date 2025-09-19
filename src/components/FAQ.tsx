@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,11 @@ export const FAQ = ({ faqs: initialFAQs = defaultFAQs, onFAQsChange }: FAQProps)
   const [editAnswer, setEditAnswer] = useState("");
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const { toast } = useToast();
+
+  // props가 변경될 때 상태 동기화
+  useEffect(() => {
+    setFaqs(initialFAQs);
+  }, [initialFAQs]);
 
   const updateFAQs = (newFAQs: FAQItem[]) => {
     setFaqs(newFAQs);

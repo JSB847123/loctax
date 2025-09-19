@@ -59,7 +59,7 @@ export function SearchHeader({ onSearch, placeholder = "법령 관련 키워드 
             <Badge
               key={index}
               variant="secondary"
-              className="px-3 py-1 bg-white/90 text-law-primary border-law-border hover:bg-white"
+              className="px-3 py-1 bg-secondary/80 text-secondary-foreground border-border hover:bg-secondary"
             >
               {tag}
               <X
